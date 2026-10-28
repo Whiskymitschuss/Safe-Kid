@@ -15,7 +15,7 @@ if($dotnetCommand){
     $installer=Join-Path $env:TEMP 'parentcontrol-dotnet-install.ps1'
     Invoke-WebRequest 'https://dot.net/v1/dotnet-install.ps1' -OutFile $installer
     & $installer -Channel 8.0 -InstallDir $localSdk -NoPath
-    if($LASTEXITCODE -ne 0 -or -not(Test-Path $dotnet)){throw 'Das .NET 8 SDK konnte nicht installiert werden. Internetverbindung und TLS-Einstellungen prüfen.'}
+    if(-not(Test-Path $dotnet)){throw 'Das .NET 8 SDK konnte nicht installiert werden. Internetverbindung und TLS-Einstellungen prüfen.'}
   }
 }
 $env:DOTNET_CLI_HOME=Join-Path $root '.tools\dotnet-home'
