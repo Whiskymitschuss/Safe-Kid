@@ -1,0 +1,11 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="ParentControl Remote" Manufacturer="ParentControl Remote" Version="1.0.0" UpgradeCode="8D9061AF-9AF5-4FBB-A561-2B5795ADBDCB" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="Eine neuere Version ist bereits installiert." />
+    <MediaTemplate EmbedCab="yes" />
+    <StandardDirectory Id="ProgramFiles64Folder"><Directory Id="INSTALLFOLDER" Name="ParentControl Remote">
+      <Component Id="ServiceFiles" Guid="*"><File Source="$(SourceDir)\ParentControl.Service\ParentControl.Service.exe" KeyPath="yes" /><File Source="$(SourceDir)\ParentControl.Service\appsettings.json" /><ServiceInstall Id="ServiceInstall" Name="ParentControlRemote" DisplayName="ParentControl Remote" Description="Lokaler Elternsteuerungsdienst" Start="auto" Type="ownProcess" ErrorControl="normal" /><ServiceControl Id="ServiceControl" Name="ParentControlRemote" Start="install" Stop="both" Remove="uninstall" Wait="yes" /></Component>
+      <Component Id="AdminFile" Guid="*"><File Source="$(SourceDir)\ParentControl.Admin\ParentControl.Admin.exe" KeyPath="yes" /></Component>
+    </Directory></StandardDirectory>
+    <Feature Id="Main" Title="ParentControl Remote"><ComponentRef Id="ServiceFiles" /><ComponentRef Id="AdminFile" /></Feature>
+  </Package>
+</Wix>

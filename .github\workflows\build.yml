@@ -1,0 +1,43 @@
+name: Windows build
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+jobs:
+  build:
+    runs-on: windows-2022
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - name: Install WiX
+        run: dotnet tool install --global wix --version 4.0.5
+      - name: Restore
+        run: dotnet restore ParentControl.Remote.sln
+      - name: Test
+        run: dotnet test ParentControl.Remote.sln -c Release --no-restore --logger "trx;LogFileName=tests.trx"
+      - name: Publish service
+        run: dotnet publish src/ParentControl.Service/ParentControl.Service.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/ParentControl.Service
+      - name: Publish agent
+        run: dotnet publish src/ParentControl.Agent/ParentControl.Agent.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/ParentControl.Agent
+      - name: Publish admin tool
+        run: dotnet publish src/ParentControl.Admin/ParentControl.Admin.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/ParentControl.Admin
+      - name: Build MSI
+        run: wix build installer/Package.wxs -arch x64 -d SourceDir=artifacts -o artifacts/ParentControl-Remote.msi
+      - name: Archive
+        run: Compress-Archive artifacts/ParentControl.Service,artifacts/ParentControl.Agent,artifacts/ParentControl.Admin artifacts/ParentControl-Remote-portable.zip
+      - name: Prepare one-click payload
+        shell: pwsh
+        run: |
+          New-Item src/ParentControl.Setup/Payload -ItemType Directory -Force | Out-Null
+          Copy-Item artifacts/ParentControl.Service/* src/ParentControl.Setup/Payload -Recurse -Force
+          Copy-Item artifacts/ParentControl.Admin/* src/ParentControl.Setup/Payload -Recurse -Force
+      - name: Build one-click installer
+        run: dotnet publish src/ParentControl.Setup/ParentControl.Setup.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/OneClick
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: test-results, path: '**/TestResults/*.trx' }
+      - uses: actions/upload-artifact@v4
+        with: { name: ParentControl-Remote-Windows, path: 'artifacts/**' }

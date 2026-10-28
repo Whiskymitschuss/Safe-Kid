@@ -1,0 +1,9 @@
+{
+  "Urls": "http://127.0.0.1:8765;http://0.0.0.0:8765",
+  "ParentControl": {
+    "ChildUser": "",
+    "AllowedNetworks": [ "100.64.0.0/10", "127.0.0.0/8", "::1/128" ],
+    "WarningSeconds": 30
+  },
+  "Logging": { "LogLevel": { "Default": "Information", "Microsoft.AspNetCore": "Warning" } }
+}

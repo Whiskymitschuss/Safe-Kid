@@ -1,0 +1,13 @@
+using Microsoft.Extensions.Options;
+using ParentControl.Service;
+
+namespace ParentControl.Tests;
+public class ControlServiceTests
+{
+    [Fact] public async Task Lock_persists_before_account_action_and_confirms(){var s=new MemoryStore();var a=new FakeAccount();var c=new ControlService(s,a,Options.Create(new ParentOptions{ChildUser="kind",WarningSeconds=5}));var result=await c.LockAsync(null,"Test",default);Assert.True(result.Locked);Assert.True(a.Disabled);}
+    [Fact] public async Task Failed_lock_rolls_back_persistent_state(){var s=new MemoryStore();var a=new FakeAccount{Fail=true};var c=new ControlService(s,a,Options.Create(new ParentOptions{ChildUser="kind"}));await Assert.ThrowsAsync<InvalidOperationException>(()=>c.LockAsync(null,"Test",default));Assert.False((await s.GetStateAsync()).Locked);}
+    [Fact] public async Task Unlock_changes_account_before_confirming_state(){var s=new MemoryStore();await s.SetStateAsync(true,null,"x");var a=new FakeAccount();var c=new ControlService(s,a,Options.Create(new ParentOptions{ChildUser="kind"}));var result=await c.UnlockAsync(default);Assert.False(result.Locked);Assert.False(a.Disabled);}
+    private sealed class FakeAccount:IAccountController{public bool Disabled,Fail;public Task SetDisabledAsync(string u,bool d,CancellationToken c){if(Fail)throw new InvalidOperationException();Disabled=d;return Task.CompletedTask;}public Task WarnAndLogoffAsync(string u,TimeSpan d,CancellationToken c)=>Task.CompletedTask;}
+    private sealed class MemoryStore:IStateStore
+    {private ControlState x=new(false,null,"Initial",DateTimeOffset.UtcNow,null,0);public Task InitializeAsync(CancellationToken c=default)=>Task.CompletedTask;public Task<ControlState> GetStateAsync(CancellationToken c=default)=>Task.FromResult(x);public Task<ControlState> SetStateAsync(bool l,DateTimeOffset? u,string r,CancellationToken c=default){x=new(l,u,r,DateTimeOffset.UtcNow,l?DateTimeOffset.UtcNow:x.LastLockAt,x.Revision+1);return Task.FromResult(x);}public Task<bool> HasParentAsync(CancellationToken c=default)=>Task.FromResult(false);public Task CreateParentAsync(string u,string p,CancellationToken c=default)=>Task.CompletedTask;public Task<bool> VerifyParentAsync(string u,string p,CancellationToken c=default)=>Task.FromResult(false);public Task AddAuditAsync(string a,string d,string r,CancellationToken c=default)=>Task.CompletedTask;public Task<IReadOnlyList<ScheduleRule>> GetScheduleAsync(CancellationToken c=default)=>Task.FromResult<IReadOnlyList<ScheduleRule>>([]);public Task SaveScheduleAsync(IEnumerable<ScheduleRule> r,CancellationToken c=default)=>Task.CompletedTask;}
+}
